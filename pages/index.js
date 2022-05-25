@@ -1,9 +1,124 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
-import { app } from '../firebase'
+import { app,db } from '../firebase'
+import {
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  doc,
+  deleteDoc
+} from 'firebase/firestore'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/router'
+import { getAuth, signOut } from 'firebase/auth'
+import {
+  TextField,
+  Button,
+  Paper,
+  IconButton
+} from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 
 export default function Home() {
+  const [name,setName] = useState('')
+  const [ID,setID] = useState('')
+  const [age,setAge] = useState('')
+  const [getData,setGetData] = useState([])
+  const [update,setUpdate] = useState(false)
+  const inputAreaRef = useRef();
+  const auth = getAuth();
+  // getting current user
+  const user = auth.currentUser;
+  const router = useRouter();
+  // initializing database
+  const colRef = collection(db,'users');
+  useEffect(() => {
+    // checking click outside form
+    const checkClickedOutside = e => {
+      if(!inputAreaRef.current.contains(e.target)) {
+        setName('')
+        setAge('')
+        setUpdate(false)
+      }
+    }
+    let token = sessionStorage.getItem('Token');
+    if(token) {
+      data()
+    } else {
+      router.push('/login')
+    }
+    document.addEventListener('mousedown', checkClickedOutside)
+    return () => {
+      document.removeEventListener('mousedown', checkClickedOutside)  
+    }
+  },[])
+  // adding data to database
+  const addData = () => {
+    addDoc(colRef, {
+      name,
+      age : Number(age)
+    }).then (() => {
+      alert('Data added successfully')
+      setName('')
+      setAge('')
+      data();
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+  // read data
+  const data = async() => {
+    getDocs(colRef)
+      .then(res => {
+        setGetData(res.docs.map(item => {
+          return {...item.data(), id : item.id}
+        }));
+      })
+      .catch(err => {
+        console.log(err);
+      })
+  }
+  // update data
+  const getID = (id,name,age) => {
+    setID(id)
+    setName(name)
+    setAge(age)
+    setUpdate(true)
+    console.log(id,name,age);
+  }
+
+  const updateData = () => {
+    let editData = doc(db, 'users', ID);
+    updateDoc(editData, {
+      name : name,
+      age : Number(age)
+    }).then(() => {
+      alert('data updated')
+      data()
+    }).catch(err => {
+      console.log(err)
+    })
+  }
+  // delete data
+  const deleteItem = (id) => {
+    let editData = doc(db, 'users', id);
+    deleteDoc(editData)
+      .then(() => {
+        alert('data deleted')
+        data();
+      })
+      .catch(err => {
+        console.log(err);
+      })
+  }
+  // sign out func
+  const signOut = () => {
+    sessionStorage.removeItem('Token');
+    router.push('/login')
+  }
   return (
     <div className={styles.container}>
       <Head>
@@ -13,7 +128,47 @@ export default function Home() {
       </Head>
 
       <main className={styles.main}>
-      <h1>Home</h1> 
+      <h1>Home</h1>
+      <p>{user ? `user : ${user.email}` : 'user : '}</p> 
+    <div ref={inputAreaRef}>
+      <TextField
+      label='name'
+      id='name'
+      margin='normal'
+      value={name}
+      onChange={e => setName(e.target.value)}
+      />
+
+      <TextField
+      label='age'
+      id='age'
+      margin='normal'
+      type='number'
+      value={age}
+      onChange={e => setAge(e.target.value)}
+      />
+      {update ? (
+        <Button onClick={updateData} variant='contained'>Update</Button>
+      ) : (
+        <Button onClick={addData} variant='contained'>Add</Button>
+      )}
+    </div>  
+   
+
+      {getData.map(data => (
+          <Paper key={data.id} sx={{
+            display : 'flex',
+            gap : '5px',
+            marginBlock : '5px',
+            padding : '20px'
+            }}>
+            <p>{data.name}</p>
+            <p>{data.age}</p>
+            <IconButton onClick={() => deleteItem(data.id)}><DeleteIcon /></IconButton>
+            <IconButton onClick={() => getID(data.id,data.name,data.age)}><EditIcon /></IconButton>
+          </Paper>
+      ))}
+      <Button variant='contained' onClick={signOut}>Log out</Button>
       </main>
     </div>
   )

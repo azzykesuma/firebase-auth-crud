@@ -5,7 +5,7 @@ import {
     TextField,
     Button
 } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     createUserWithEmailAndPassword,
     getAuth,
@@ -26,8 +26,9 @@ export default function Register() {
     
     const Signup = () => {
         createUserWithEmailAndPassword(auth,email,password)
-            .then (() => {
+            .then (res => {
                 router.push('/')
+                sessionStorage.setItem('Token', res.user.accessToken)
             })
             .catch(err => {
                 console.log(err.message);
@@ -36,7 +37,8 @@ export default function Register() {
 
     const signUpWithGoogle = () => {
         signInWithPopup(auth,googleProv)
-            .then(() => {
+            .then(res => {
+                sessionStorage.setItem('Token', res.user.accessToken)
                 router.push('/')
             })
             .catch(err => {
@@ -46,13 +48,21 @@ export default function Register() {
 
     const signUpWithGithub = () => {
         signInWithPopup(auth,githubProv)
-            .then(() => {
+            .then(res => {
+                sessionStorage.setItem('Token', res.user.accessToken)
                 router.push('/')
             })
             .catch(err => {
                 console.log(err.message);
             })
     }
+
+    useEffect(() => {
+        let token = sessionStorage.getItem('Token');
+        if(token) {
+            router.push('/')
+        }
+    },[])
     return (
         <>
             <Head>

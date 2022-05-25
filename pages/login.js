@@ -1,6 +1,61 @@
 import Head from 'next/head';
 import styles from '../styles/Home.module.css' 
+import {
+    TextField,
+    Button
+} from '@mui/material';
+import { useEffect, useState } from 'react';
+import {
+    signInWithEmailAndPassword ,
+    getAuth,
+    signInWithPopup,
+    GoogleAuthProvider,
+    GithubAuthProvider
+} from 'firebase/auth';
+import { useRouter } from 'next/router';
 export default function Login() {
+    const auth = getAuth();
+    const router = useRouter();
+    const googleProv = new GoogleAuthProvider();
+    const githubProv = new GithubAuthProvider();
+
+    const [email,setEmail] = useState('')
+    const [password,setPassword] = useState('')
+    
+    const login = () => {
+        signInWithEmailAndPassword(auth,email,password)
+            .then(cred => {
+                sessionStorage.setItem('Token', cred.user.accessToken)
+                router.push('/')
+            })
+            .catch(err => {
+                console.log(err);
+            })
+    }
+    
+    const signUpWithGoogle = () => {
+        signInWithPopup(auth,googleProv)
+            .then(res => {
+                sessionStorage.setItem('Token', res.user.accessToken)
+                router.push('/')
+            })
+            .catch(err => {
+                console.log(err.message);
+            })
+    }
+
+    
+
+    const signUpWithGithub = () => {
+    signInWithPopup(auth,githubProv)
+        .then(res => {
+            sessionStorage.setItem('Token', res.user.accessToken)
+            router.push('/')
+        })
+        .catch(err => {
+            console.log(err.message);
+        })
+    }
     return (
         <>
             <Head>
@@ -10,7 +65,20 @@ export default function Login() {
             </Head>
 
             <main className={styles.main}>
-                <h1>Login</h1> 
+                <h1>Login</h1>
+                <TextField id='email' type='email'
+                label='email' placeholder='email' margin='normal'
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                />
+                <TextField id='password' type='password'
+                label='password' placeholder='password'
+                value={password} margin='normal'
+                onChange={(e) => setPassword(e.target.value)} 
+                />
+                <Button variant='contained' onClick={login}>Log in with email</Button>
+                <Button variant='contained' sx={{marginBlock : '5px'}} onClick={signUpWithGoogle}>Signup with Google</Button>
+                <Button variant='contained' onClick={signUpWithGithub}>Signup with Github</Button> 
             </main>
         </>
     )
